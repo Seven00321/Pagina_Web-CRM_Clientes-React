@@ -1,14 +1,27 @@
-import { useNavigate, Form, useActionData, redirect } from 'react-router-dom'
+import { Form, useActionData, useLoaderData, useNavigate, redirect } from 'react-router-dom'
 
-// Components
+// Data
+import {obtenerCliente, actualizarCliente} from '../data/cliente';
+
+// Componets
 import Formulario from '../components/Formulario';
 import Error from '../components/Error';
 
-// Data
-import {agregarCliente} from '../data/cliente'
 
-// Funcion Action
-export async function action({request}) {
+
+export async function loader({params}) {
+    const cliente = await obtenerCliente(params.clienteId);
+
+    if(Object.values(cliente).length === 0){
+        throw new Response('', {
+            status: 404,
+            statusText: 'El cliente no fue encontrado'
+        });
+    }
+    return cliente;
+}
+
+export async function action({request, params}){
     const formData = await request.formData();
     const datos = Object.fromEntries(formData);
     const email = formData.get('email');
@@ -33,20 +46,20 @@ export async function action({request}) {
         return { ok: true}, errores;
     }
 
-    // Agregar nuevo Cliente
-    await agregarCliente(datos);
+    // Actualizar el Cliente
+    await actualizarCliente(params.clienteId, datos);
     return { ok: true}, redirect('/')
 }
 
-function NuevoCliente() {
-
-    const errores = useActionData();
+function EditarClientes() {
     const navigate = useNavigate();
+    const cliente = useLoaderData();
+    const errores = useActionData();
 
     return (
         <>
-            <h1 className="text-4xl font-black text-blue-900">Nuevo Cliente</h1>
-            <p className='mt-3'>Llena todos los Campos para registrar un nuevo cliente</p>
+            <h1 className="text-4xl font-black text-blue-900">Editar Cliente</h1>
+            <p className='mt-3'>A continuacion podras modificar los datos de un cliente</p>
 
             <div className='flex justify-end'>
                 <button
@@ -67,12 +80,13 @@ function NuevoCliente() {
                     noValidate
                 >
                     <Formulario
+                        cliente={cliente}
                     />
 
                     <input
                         type="submit"
                         className='mt-5 w-full bg-blue-800 p-3 uppercase font-bold text-white text-lg hover:text-blue-300 pointer'
-                        value="Registrar Cliente"
+                        value="Guardar Cliente"
                     />
                 </Form>
             </div>
@@ -80,4 +94,4 @@ function NuevoCliente() {
     )
 }
 
-export default NuevoCliente
+export default EditarClientes
